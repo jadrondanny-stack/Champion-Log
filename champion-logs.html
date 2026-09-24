@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#0b0d12"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Champion Logs"/>
+<title>Champion Logs</title>
+<link rel="manifest" href="manifest.webmanifest"/>
+<style>
+:root{
+  --bg:#0b0d12;--panel:#141821;--panel2:#1b2130;--line:#2a3347;
+  --gold:#d4a017;--gold2:#f0c14b;--text:#e8e4d9;--muted:#9aa3b5;
+  --magic:#6b8cff;--force:#e05a4f;--spirit:#4ecf8a;--void:#b07cff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif;min-height:100%}
+header{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line);background:rgba(11,13,18,.94);backdrop-filter:blur(8px)}
+.brand{display:flex;gap:10px;align-items:center}
+.mark{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;font-weight:800;color:#1a1204;background:linear-gradient(135deg,#8a6a12,#f0c14b)}
+h1{margin:0;font-size:17px;letter-spacing:.04em} h1 b{color:var(--gold2);font-weight:700}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button,.btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:8px 11px;border-radius:8px;cursor:pointer;font-size:13px}
+nav button.active,.btn.primary{background:linear-gradient(180deg,#3a2e10,#1e180c);border-color:var(--gold);color:var(--gold2)}
+main{max-width:1180px;margin:0 auto;padding:14px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+input,select{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:8px;font-size:14px}
+.stats{display:flex;gap:14px;color:var(--muted);font-size:13px;margin-bottom:10px;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.card.owned{outline:1px solid var(--gold)}
+.name{font-weight:700}
+.meta{font-size:12px;color:var(--muted);margin:4px 0 8px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.M{background:var(--magic)}.F{background:var(--force)}.S{background:var(--spirit)}.V{background:var(--void)}
+.rL{color:#f0c14b}.rE{color:#c26bff}.rR{color:#4ea3ff}.rU{color:#5dca7a}.rC{color:#a8b0be}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px}
+.fields label{color:var(--muted);display:block}
+.fields select{width:100%;padding:4px 6px}
+.own{margin-top:8px;width:100%}
+.note{color:var(--muted);font-size:13px;line-height:1.45}
+.team{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{background:var(--panel2);border:1px solid var(--line);padding:4px 8px;border-radius:999px;font-size:12px}
+.chip.have{border-color:var(--gold);color:var(--gold2)}
+.chip.miss{opacity:.55}
+.heads{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.heads label{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);padding:6px 10px;border-radius:999px;font-size:12px;cursor:pointer}
+.heads input{accent-color:var(--gold)}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:28px 16px}
+.rowbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="mark">CL</div><h1>Champion <b>Logs</b></h1></div>
+  <nav>
+    <button class="active" data-tab="barracks">Barracks</button>
+    <button data-tab="builder">Team Builder</button>
+    <button data-tab="hydra">Hydra Heads</button>
+    <button data-tab="saved">Saved</button>
+  </nav>
+</header>
+<main>
+<section id="barracks">
+  <div class="stats" id="rosterStats"></div>
+  <div class="toolbar">
+    <input id="search" placeholder="Search name or faction"/>
+    <select id="filterRarity">
+      <option value="">All rarities</option>
+      <option value="L">Legendary</option><option value="E">Epic</option>
+      <option value="R">Rare</option><option value="U">Uncommon</option><option value="C">Common</option>
+    </select>
+    <select id="filterAff">
+      <option value="">All affinities</option>
+      <option value="M">Magic</option><option value="F">Force</option>
+      <option value="S">Spirit</option><option value="V">Void</option>
+    </select>
+    <select id="filterOwn">
+      <option value="">All</option><option value="owned">Owned</option><option value="missing">Missing</option>
+    </select>
+    <button class="btn" id="exportBtn">Export CSV</button>
+    <label class="btn">Import CSV<input type="file" id="importCsv" accept=".csv,text/csv" hidden></label>
+  </div>
+  <p class="note">Tap “I own this”, then set stars, books, soul, blessing and sets. Export/import CSV to move your barracks between devices.</p>
+  <div class="grid" id="champGrid"></div>
+</section>
+<section id="builder" hidden>
+  <p class="note">Suggestions use your owned roster plus known fight roles. Not speed-tuned. Hydra uses 6 champs; other bosses use 5.</p>
+  <div class="toolbar">
+    <select id="bossSelect"></select>
+    <button class="btn primary" id="genBtn">Build from my roster</button>
+  </div>
+  <div id="bossOut"></div>
+</section>
+<section id="hydra" hidden>
+  <p class="note">Check the four heads you are fighting this week. Champion Logs weights Provoke for Decay, Block Buffs/Hex for Mischief, Veil/Cleanse for Torment, HP Burn for Blight, Decrease ATK for Wrath, and sustain for Suffering.</p>
+  <div class="heads" id="headPicks"></div>
+  <div class="toolbar"><button class="btn primary" id="hydraBtn">Build Hydra 6 from my roster</button></div>
+  <div id="hydraOut"></div>
+</section>
+<section id="saved" hidden>
+  <p class="note">Saved in this browser only. Export CSV from Barracks if you need a backup.</p>
+  <div id="savedList"></div>
+</section>
+</main>
+<footer>Unofficial fan tool. Raid: Shadow Legends is a Plarium trademark. Catalog mixes community data with extra modern champs. Not affiliated with Plarium.</footer>
+<script>
+const RAW = [["Abbess","L","F","The Sacred Order","A"],["Abyssal","R","S","Demonspawn","P"],["Achak the Wendarin","E","F","Demonspawn","P"],["Acolyte","R","F","Knight Revenant","P"],["Acrizia","L","F","Dwarves","A"],["Adjudicator","R","M","High Elves","A"],["Admonitor","U","F","Knight Revenant","H"],["Adriel","E","M","The Sacred Order","P"],["Aina","E","M","Barbarians","A"],["Akoth the Seared","E","M","Demonspawn","D"],["Alaric the Hooded","E","F","Banner Lords","A"],["Alika","E","F","Barbarians","A"],["Altan","L","M","Barbarians","D"],["Alure","E","M","Demonspawn","A"],["Amarantine Skeleton","R","V","Undead Hordes","D"],["Anax","E","S","Undead Hordes","A"],["Angar","L","V","Orcs","H"],["Anointed","R","F","Barbarians","P"],["Aothar","E","F","The Sacred Order","A"],["Aox the Rememberer","E","F","Lizardmen","P"],["Apothecary","R","M","High Elves","P"],["Arbalester","R","V","Undead Hordes","A"],["Arbiter","L","V","High Elves","P"],["Arcanist","R","F","Knight Revenant","P"],["Archer","U","M","Banner Lords","A"],["Archmage Hellmut","E","M","Banner Lords","P"],["Aristocrat","U","M","High Elves","A"],["Armiger","U","S","The Sacred Order","D"],["Armina","E","M","Barbarians","A"],["Artak","L","F","Orcs","A"],["Astralith","L","S","Dark Elves","A"],["Astralon","L","M","The Sacred Order","A"],["Athel","R","M","The Sacred Order","A"],["Atur","E","M","Barbarians","H"],["Avenger","R","M","High Elves","A"],["Avir the Alchemage","R","M","Dwarves","P"],["Axeman","C","F","Banner Lords","H"],["Azure","E","V","Banner Lords","H"],["Bad-el-Kazar","L","F","Undead Hordes","P"],["Baerdal Fellhammer","E","V","Dwarves","A"],["Balthus Drauglord","E","S","Undead Hordes","D"],["Bandit","C","S","Banner Lords","A"],["Banshee","R","M","Undead Hordes","P"],["Baron","L","V","Banner Lords","A"],["Baroth the Bloodsoaked","E","F","Barbarians","H"],["Basher","E","V","Skinwalkers","A"],["Basileus Roanas","L","F","High Elves","A"],["Basilisk","E","F","Lizardmen","A"],["Battle Sister","U","M","The Sacred Order","A"],["Battlesage","E","V","High Elves","P"],["Beast Wrestler","R","F","Dwarves","A"],["Belanor","L","V","High Elves","A"],["Bellower","R","V","Ogryn Tribes","P"],["Bergoth the Malformed","E","S","Knight Revenant","H"],["Berserker","R","S","Barbarians","A"],["Big \u2018Un","L","M","Ogryn Tribes","A"],["Black Knight","L","F","Banner Lords","H"],["Blind Seer","L","V","Dark Elves","P"],["Bloodbraid","R","S","Barbarians","H"],["Bloodfeather","E","F","Orcs","A"],["Bloodgorged","L","F","Undead Hordes","A"],["Bloodhorn","R","V","Skinwalkers","H"],["Bloodmask","R","F","Shadowkin","H"],["Bloodpainter","R","F","Skinwalkers","A"],["Bogwalker","R","F","Lizardmen","D"],["Boltsmith","R","F","Dwarves","A"],["Bombardier","R","F","Banner Lords","A"],["Bone Knight","R","S","Undead Hordes","A"],["Bonekeeper","E","F","Orcs","A"],["Brakus the Shifter","L","F","Skinwalkers","A"],["Broadmaw","E","V","Lizardmen","P"],["Brute","U","M","Ogryn Tribes","A"],["Bully","C","S","Barbarians","D"],["Bulwark","R","V","Dwarves","D"],["Bushi","E","S","The Sacred Order","A"],["Bystophus","L","F","Knight Revenant","A"],["Cagebreaker","E","S","Ogryn Tribes","A"],["Candraphon","L","F","Demonspawn","A"],["Canoness","E","M","The Sacred Order","D"],["Captain Temila","E","M","Dark Elves","H"],["Cardiel","L","V","The Sacred Order","P"],["Cardinal","E","V","The Sacred Order","P"],["Catacomb Councilor","E","M","Undead Hordes","A"],["Cataphract","R","S","Banner Lords","H"],["Centurion","R","V","Knight Revenant","D"],["Chancellor Yasmin","E","F","Banner Lords","P"],["Channeler","R","S","Skinwalkers","P"],["Chaplain","R","F","The Sacred Order","P"],["Chemist","U","M","Dwarves","A"],["Chevalier","R","V","Banner Lords","D"],["Chonoru","E","S","Shadowkin","A"],["Chopper","R","M","Orcs","A"],["Cillian the Lucky","L","M","Banner Lords","A"],["Coffin Smasher","R","M","Knight Revenant","H"],["Coldheart","R","V","Dark Elves","A"],["Commander","U","F","Banner Lords","P"],["Confessor","R","V","The Sacred Order","A"],["Conquerer","R","S","Banner Lords","A"],["Conscript","U","M","Shadowkin","D"],["Corpse Collector","E","F","Undead Hordes","P"],["Corpulent Cadaver","R","S","Undead Hordes","H"],["Countess Lix","L","M","Demonspawn","A"],["Courtier","R","F","Banner Lords","A"],["Crimson Helm","E","S","Dark Elves","D"],["Crimson Slayer","R","S","Knight Revenant","A"],["Crossbowman","R","M","Banner Lords","A"],["Crowned Druid","E","S","Lizardmen","P"],["Cruetraxa","L","V","Demonspawn","A"],["Crusader","U","F","The Sacred Order","A"],["Crusher","U","S","Barbarians","D"],["Crypt Witch","E","M","Knight Revenant","A"],["Crypt-King Graal","L","M","Undead Hordes","P"],["Cudgeler","R","M","Dwarves","A"],["Cultist","U","F","Knight Revenant","A"],["Cupidus","L","S","The Sacred Order","A"],["Dagger","R","V","Banner Lords","A"],["Dark Athel","E","M","Undead Hordes","A"],["Dark Elhain","E","M","Undead Hordes","A"],["Daywalker","R","V","Knight Revenant","H"],["Deacon Armstrong","E","S","The Sacred Order","P"],["Dead Crusader","U","F","Undead Hordes","D"],["Death Hound","C","M","Undead Hordes","A"],["Deathchanter","R","M","Orcs","H"],["Deathknight","C","M","Undead Hordes","H"],["Deathless","E","S","Knight Revenant","D"],["Defiled Sinner","E","F","Undead Hordes","A"],["Delver","E","S","Dark Elves","A"],["Demytha","E","S","Dwarves","P"],["Dervish","U","M","Barbarians","A"],["Dhampir","U","S","Undead Hordes","A"],["Dhukk the Pierced","E","M","Orcs","D"],["Diabolist","R","M","Demonspawn","P"],["Dilgol","R","V","Dwarves","A"],["Dolor Lorekeeper","R","F","Dwarves","P"],["Doompriest","E","F","Knight Revenant","P"],["Doomscreech","R","V","Undead Hordes","H"],["Dracomorph","L","M","Lizardmen","A"],["Draconis","R","V","The Sacred Order","H"],["Drake","E","S","Lizardmen","A"],["Drexthar Bloodtwin","L","F","Demonspawn","D"],["Drokgul the Gaunt","L","S","Ogryn Tribes","P"],["Drowned Bloatwraith","R","V","Undead Hordes","A"],["Duchess Lilitu","L","S","Demonspawn","P"],["Duelist","U","F","Banner Lords","A"],["Dunestrider","R","M","Barbarians","A"],["Elder","R","M","Barbarians","D"],["Elder Skarg","L","F","Barbarians","A"],["Elegaius","L","M","Undead Hordes","P"],["Elenaril","L","M","High Elves","A"],["Elfguard","U","S","High Elves","A"],["Elhain","R","M","High Elves","A"],["Elva Autumnborn","L","S","High Elves","P"],["Erinyes","E","F","Demonspawn","A"],["Errol","L","F","The Sacred Order","A"],["Eviscerator","R","V","Dark Elves","A"],["Excruciator","E","M","Demonspawn","A"],["Executioner","R","M","Knight Revenant","D"],["Exemplar","E","V","High Elves","A"],["Faceless","E","V","Knight Revenant","A"],["Fahrakin the Fat","E","S","Barbarians","A"],["Fanatic","R","V","Shadowkin","P"],["Fang Cleric","E","S","Dark Elves","P"],["Fayne","E","S","Skinwalkers","A"],["Fellhound","R","V","Demonspawn","D"],["Fenax","E","S","The Sacred Order","A"],["Fencer","R","F","High Elves","A"],["Fireblade","U","S","Banner Lords","A"],["Flailer","R","M","Dwarves","D"],["Flesh-Tearer","E","M","Skinwalkers","P"],["Flesheater","R","S","Ogryn Tribes","P"],["Fleshmonger","R","M","Skinwalkers","A"],["Flinger","R","S","Lizardmen","A"],["Fodbor the Bard","E","S","Dwarves","A"],["Foli","L","M","Dark Elves","A"],["Fortress Goon","R","M","Ogryn Tribes","D"],["Frontline Warrior","U","S","Banner Lords","D"],["Frostbringer","E","M","The Sacred Order","P"],["Frostskin","U","M","Ogryn Tribes","P"],["Frozen Banshee","R","M","Undead Hordes","A"],["Fu-Shan","L","F","Lizardmen","A"],["Furystoker","R","S","Ogryn Tribes","P"],["Gala Longbraids","E","V","Dwarves","A"],["Galek","R","M","Orcs","A"],["Galkut","E","S","Ogryn Tribes","A"],["Gator","R","M","Lizardmen","P"],["Geargrinder","R","V","Ogryn Tribes","H"],["Genzin","L","S","Shadowkin","A"],["Geomancer","E","F","Dwarves","A"],["Gerhard the Stone","E","M","Banner Lords","A"],["Ghostborn","L","S","Dark Elves","P"],["Ghoulish Ranger","R","S","Undead Hordes","A"],["Ghrush the Mangler","E","S","Ogryn Tribes","D"],["Gladiator","R","F","Knight Revenant","A"],["Gloril Brutebane","R","S","Dwarves","P"],["Gloril_Brutebane","R","S","Dwarves","A"],["Gnarlhorn","R","S","Skinwalkers","H"],["Gnishak Verminlord","L","F","Skinwalkers","A"],["Gnut","L","V","Dwarves","A"],["Godseeker Aniri","E","V","The Sacred Order","D"],["Golden Reaper","E","V","Knight Revenant","P"],["Gomlok Skyhide","L","F","Orcs","P"],["Goremask","R","F","Orcs","A"],["Gorgorab","E","M","Undead Hordes","P"],["Grandmaster","R","M","Banner Lords","H"],["Grappler","R","S","Skinwalkers","D"],["Gravechill Killer","R","M","Undead Hordes","A"],["Graybeard","R","M","Skinwalkers","D"],["Grimskin","E","M","Ogryn Tribes","D"],["Grinner","R","F","Undead Hordes","P"],["Grizzled Jarl","E","M","Dwarves","D"],["Grohak the Bloodied","L","M","Orcs","A"],["Grumbler","R","M","Dwarves","H"],["Grunch Killjoy","E","F","Ogryn Tribes","P"],["Guardian","R","S","Knight Revenant","H"],["Gurgoh the Augur","L","V","Ogryn Tribes","A"],["Gurptuk Moss-Beard","L","F","Ogryn Tribes","P"],["Haarken Greatblade","E","V","Barbarians","A"],["Hakkorhn Smashlord","L","M","Skinwalkers","H"],["Halberdier","R","S","Banner Lords","A"],["Hardscale","U","M","Lizardmen","D"],["Harima","L","S","Shadowkin","D"],["Harrier","R","V","The Sacred Order","A"],["Haruspex","R","V","Lizardmen","P"],["Harvest Jack","L","S","Undead Hordes","H"],["Harvester","R","V","Dark Elves","A"],["Hatchet Slinger","R","S","Dwarves","A"],["Head Taker","U","M","Barbarians","A"],["Headsman","R","S","The Sacred Order","A"],["Heartpiercer","U","F","Dark Elves","A"],["Hegemon","L","V","Knight Revenant","A"],["Heiress","R","F","High Elves","A"],["Helicath","L","F","Demonspawn","D"],["Hellfang","R","S","Demonspawn","A"],["Hellgazer","E","S","Demonspawn","A"],["Hellhound","C","S","Undead Hordes","A"],["Herald","U","S","Knight Revenant","P"],["Hexia","E","F","Undead Hordes","A"],["Hexweaver","R","S","Dark Elves","P"],["High Khatun","E","S","Barbarians","P"],["Hill Nomad","R","M","Barbarians","P"],["Hollow","R","V","Undead Hordes","A"],["Honor Guard","R","F","Dwarves","D"],["Hope","E","M","The Sacred Order","H"],["Hordin","E","M","Banner Lords","A"],["Hospitaller","R","M","The Sacred Order","P"],["Hound Spawn","R","F","Demonspawn","A"],["Hungerer","U","F","Ogryn Tribes","H"],["Huntress","R","V","Orcs","A"],["Hurler","R","F","Lizardmen","A"],["Husk","E","F","Undead Hordes","H"],["Hyria","R","S","High Elves","A"],["Icebound Prospector","U","F","Dwarves","A"],["Ifrit","R","V","Demonspawn","H"],["Ignatius","L","M","Ogryn Tribes","D"],["Incubus","U","F","Demonspawn","A"],["Infernal Baroness","E","F","Demonspawn","D"],["Infiltrator","U","F","Shadowkin","A"],["Inithwe Bloodtwin","L","V","Demonspawn","A"],["Inquisitor Shamael","E","V","The Sacred Order","A"],["Interceptor","R","V","High Elves","D"],["Intercessor","U","F","The Sacred Order","P"],["Iron Brago","L","S","Orcs","D"],["Ironclad","R","F","Orcs","H"],["Ithos","L","V","High Elves","A"],["Jaeger","U","S","High Elves","A"],["Jarang","E","M","Lizardmen","A"],["Jareg","E","M","Lizardmen","H"],["Jinglehunter","E","S","High Elves","A"],["Jintoro","L","M","Shadowkin","A"],["Jizoh","E","S","Lizardmen","D"],["Jotun","E","M","Barbarians","H"],["Judge","R","M","Dark Elves","A"],["Judicator","R","S","The Sacred Order","A"],["Juliana","E","M","The Sacred Order","A"],["Justiciar","R","V","The Sacred Order","D"],["Kael","R","M","Dark Elves","A"],["Kaiden","E","M","Dark Elves","D"],["Kallia","E","F","Barbarians","A"],["Kantra the Cyclone","L","F","Barbarians","D"],["Karam","E","F","Undead Hordes","A"],["Khoronar","L","V","Skinwalkers","H"],["King Garog","L","F","Orcs","A"],["Klodd Beastfeeder","E","M","Ogryn Tribes","H"],["Knecht","C","S","The Sacred Order","D"],["Knight-Errant","E","S","Banner Lords","A"],["Kreela Witch-Arm","L","M","Orcs","P"],["Krisk the Ageless","L","V","Lizardmen","D"],["Kurzad Deepheart","R","V","Dwarves","A"],["Kytis","E","S","Knight Revenant","A"],["Lady Etessa","E","F","The Sacred Order","A"],["Lady Mikage","L","S","Shadowkin","P"],["Lamellar","R","F","The Sacred Order","H"],["Lanakis the Chosen","L","M","Dark Elves","P"],["Lemure","U","M","Demonspawn","H"],["Lich","E","F","Undead Hordes","D"],["Lifetaker","R","M","Shadowkin","A"],["Lightsworn","E","V","The Sacred Order","D"],["Line Infantry","U","F","Dwarves","D"],["Little Miss Annie","L","V","Undead Hordes","A"],["Lodric Falconheart","E","S","The Sacred Order","H"],["Longbeard","L","M","Skinwalkers","A"],["Lord Champfort","L","M","Banner Lords","H"],["Lord Shazar","L","S","Demonspawn","A"],["Lordly Legionary","E","M","Banner Lords","A"],["Lua","E","V","Dark Elves","A"],["Lugan the Steadfast","L","S","Banner Lords","H"],["Luria","E","S","Dark Elves","A"],["Lurker","C","M","Dark Elves","A"],["Luthiea","E","F","High Elves","A"],["Lydia the Deathsiren","L","V","Dark Elves","P"],["Lyssandra","L","S","High Elves","P"],["Madame Serris","E","V","Dark Elves","P"],["Madman","R","S","Dwarves","A"],["Maeve","E","F","Barbarians","A"],["Magekiller","C","S","Dark Elves","A"],["Magister","R","F","High Elves","P"],["Magmablood","R","F","Ogryn Tribes","A"],["Magus","R","M","Knight Revenant","A"],["Maiden","R","S","The Sacred Order","A"],["Malbranche","R","V","Demonspawn","A"],["Maneater","E","V","Ogryn Tribes","H"],["Marked","R","M","Barbarians","P"],["Marksman","E","S","High Elves","A"],["Marquess","R","S","Demonspawn","D"],["Marquis","R","V","Demonspawn","D"],["Martyr","L","S","The Sacred Order","D"],["Masked Fearmonger","E","S","Banner Lords","A"],["Master Butcher","R","S","Dwarves","P"],["Maulie Tankard","L","S","Dwarves","P"],["Mausoleum Mage","E","F","Undead Hordes","P"],["Ma\u2019Shalled","L","S","Undead Hordes","A"],["Melga Steelgirdle","E","S","Dwarves","H"],["Metalshaper","R","S","Lizardmen","P"],["Militia","U","S","The Sacred Order","A"],["Minaya","L","F","Banner Lords","P"],["Miscreated Monster","E","M","Knight Revenant","H"],["Missionary","E","F","The Sacred Order","H"],["Mistress of Hymns","E","S","The Sacred Order","P"],["Mithrala Whisperwood","L","V","Dark Elves","P"],["Mortu-Macaab","L","S","Demonspawn","H"],["Mother Superior","R","S","The Sacred Order","P"],["Mountain King","L","F","Dwarves","A"],["Muckstalker","R","M","Lizardmen","H"],["Myrmidon","R","M","Banner Lords","D"],["Mystic Hand","R","F","Dark Elves","P"],["Narma the Returned","L","M","Knight Revenant","P"],["Nazana","E","F","Demonspawn","H"],["Necrohunter","E","M","Knight Revenant","A"],["Nekhret the Great","L","V","Undead Hordes","D"],["Nethril","L","S","Undead Hordes","A"],["Ninja","L","M","Shadowkin","A"],["Nogdar the Headhunter","L","S","Orcs","A"],["Norog","L","M","Skinwalkers","D"],["Novitiate","C","S","The Sacred Order","A"],["Oathbound","E","F","Banner Lords","D"],["Oboro","E","V","Shadowkin","A"],["Occult Brawler","E","S","Ogryn Tribes","H"],["Ogryn Jailer","R","F","Ogryn Tribes","A"],["Old Hermit Jorrg","E","M","Orcs","P"],["Oldbeard","U","F","Ogryn Tribes","D"],["Outlander","U","S","Barbarians","A"],["Outlaw Monk","U","F","The Sacred Order","A"],["Outrider","U","S","Barbarians","A"],["Ox","R","V","Barbarians","A"],["Pain Keeper","R","V","Dark Elves","H"],["Painsmith","R","V","Dwarves","A"],["Panthera","R","V","Skinwalkers","A"],["Paragon","R","V","Dark Elves","D"],["Penitent","R","S","The Sacred Order","D"],["Perforator","R","F","Dwarves","A"],["Pestilus","E","S","Knights Revenant","P"],["Peydma","E","V","Demonspawn","D"],["Pigsticker","R","M","Orcs","A"],["Pikeman","C","M","Banner Lords","D"],["Pilgrim","U","F","The Sacred Order","P"],["Pit Cur","U","F","Demonspawn","H"],["Pit Fighter","U","F","Barbarians","H"],["Pitiless One","E","M","Knight Revenant","A"],["Pitspawn","U","S","Demonspawn","D"],["Pounder","R","M","Ogryn Tribes","D"],["Preacher","C","F","The Sacred Order","H"],["Preserver","R","F","Banner Lords","D"],["Prince Kymar","L","M","Demonspawn","P"],["Prundar","E","V","Ogryn Tribes","D"],["Psylar","E","V","Dark Elves","P"],["Purgator","R","M","The Sacred Order","A"],["Pythion","L","S","Lizardmen","P"],["Pyxniel","L","M","High Elves","P"],["Quaestor","R","F","Banner Lords","A"],["Quargan the Crowned","E","S","Lizardmen","P"],["Queen Eva","L","S","Dark Elves","A"],["Rae","L","M","Dark Elves","A"],["Ragemonger","R","V","Barbarians","A"],["Raglin","L","V","Banner Lords","P"],["Raider","R","S","Orcs","A"],["Ranger","C","F","Dark Elves","A"],["Rearguard Sergeant","E","F","Dwarves","D"],["Rector Drath","E","F","Knight Revenant","P"],["Redeemer","U","F","Dark Elves","A"],["Reinbeast","E","F","Skinwalkers","D"],["Relickeeper","E","F","The Sacred Order","A"],["Reliquary Tender","R","V","High Elves","P"],["Renegade","R","V","Knight Revenant","P"],["Renouncer","R","F","The Sacred Order","A"],["Retainer","R","V","Dark Elves","D"],["Rhazin Scarhide","L","F","Lizardmen","D"],["Rian the Conjurer","E","F","Dark Elves","P"],["Richtoff the Bold","L","S","Banner Lords","A"],["Ripper","E","F","Skinwalkers","A"],["Ripperfist","R","V","Orcs","A"],["Ritualist","U","M","Barbarians","A"],["Robar","L","F","Orcs","A"],["Rock Breaker","E","S","Dwarves","D"],["Rocktooth","R","M","Ogryn Tribes","A"],["Romero","E","F","The Sacred Order","D"],["Roshcard the Tower","L","M","The Sacred Order","H"],["Rotos the Lost Groom","L","M","Undead Hordes","A"],["Rotting Mage","R","S","Undead Hordes","P"],["Rowan","E","V","Banner Lords","A"],["Roxam","L","M","Lizardmen","A"],["Royal Guard","E","M","High Elves","A"],["Royal Huntsman","L","S","High Elves","A"],["Ruffstone","R","F","Ogryn Tribes","A"],["Rugnor Goldgleam","E","V","Dwarves","A"],["Runekeeper Dazdurk","E","V","Dwarves","P"],["Runic Warder","R","M","Dwarves","H"],["Sachi","E","F","Shadowkin","P"],["Saito","L","M","Undead Hordes","A"],["Samar Gemcursed","L","S","Dwarves","H"],["Sanctum Protector","R","S","The Sacred Order","D"],["Sandbow","U","S","Barbarians","A"],["Sandlashed Survivor","E","S","Orcs","D"],["Sanguinia","E","M","The Sacred Order","P"],["Satyr","U","S","Skinwalkers","H"],["Saurus","U","S","Lizardmen","A"],["Scrapper","R","V","Barbarians","A"],["Scyl of the Drakes","L","M","Barbarians","D"],["Seducer","R","V","Undead Hordes","D"],["Seeker","E","M","Undead Hordes","D"],["Seer","E","V","Orcs","P"],["Seneschal","E","F","Banner Lords","D"],["Sentinel","R","F","Barbarians","H"],["Septimus","L","S","Banner Lords","A"],["Sepulcher Sentinel","E","F","Knight Revenant","D"],["Sergeant","U","F","The Sacred Order","A"],["Sethallia","L","M","Banner Lords","P"],["Shaman","E","F","Orcs","P"],["Shamrock","L","S","Ogryn Tribes","P"],["Sharpshooter","U","M","The Sacred Order","A"],["Shatterbones","E","F","Ogryn Tribes","A"],["Shieldguard","U","S","Barbarians","D"],["Shirimani","L","F","High Elves","P"],["Sicia Flametongue","L","F","Demonspawn","A"],["Siegebreaker","R","S","Ogryn Tribes","A"],["Sikara","E","M","Barbarians","P"],["Sinesha","E","F","Knight Revenant","P"],["Siphi the Lost Bride","L","V","Undead Hordes","P"],["Sir Nicholas","L","V","The Sacred Order","H"],["Sister Militant","C","F","The Sacred Order","A"],["Skartorsis","L","F","Undead Hordes","P"],["Skellag","U","F","Undead Hordes","D"],["Skink","R","M","Lizardmen","A"],["Skinner","U","M","Lizardmen","A"],["Skirmisher","R","V","Barbarians","A"],["Skull Lord Var-Gall","L","F","Lizardmen","D"],["Skullcrown","E","V","Knight Revenant","A"],["Skullcrusher","E","F","Ogryn Tribes","D"],["Skullsquire","U","F","Undead Hordes","A"],["Skullsworn","R","F","Lizardmen","A"],["Skytouched Shaman","E","V","Barbarians","P"],["Slasher","R","S","Lizardmen","A"],["Slayer","R","F","Barbarians","A"],["Slicer","U","S","Dwarves","A"],["Slitherbrute","R","M","Lizardmen","A"],["Sniper","U","M","Dark Elves","A"],["Snorting Thug","E","F","Skinwalkers","H"],["Solaris","R","F","The Sacred Order","A"],["Sorceress","R","F","Undead Hordes","A"],["Soulbond Bowyer","R","S","Barbarians","A"],["Souldrinker","E","F","Demonspawn","A"],["Soulless","L","V","Knight Revenant","D"],["Spider","E","F","Dark Elves","P"],["Spikehead","R","M","Orcs","A"],["Spirithost","R","S","Dark Elves","P"],["Spiritwalker","U","F","Barbarians","P"],["Squire","U","F","Banner Lords","D"],["Stag Knight","E","S","Banner Lords","P"],["Stalker","U","M","Lizardmen","H"],["Stalwart","U","M","Banner Lords","H"],["Steadfast Marshal","R","V","Banner Lords","H"],["Steel Bowyer","R","F","Dark Elves","A"],["Steelskull","E","S","Skinwalkers","P"],["Stitched Beast","R","V","Undead Hordes","A"],["Stoneskin","R","V","Ogryn Tribes","H"],["Stout Axeman","R","M","Dwarves","H"],["Sun Wukong","L","S","Shadowkin","A"],["Suntribe","U","M","Orcs","P"],["Supreme Galek","E","M","Orcs","A"],["Suwai Firstborn","E","V","Barbarians","A"],["Suzerain Katonn","L","S","Undead Hordes","A"],["Swordsman","C","M","Banner Lords","A"],["Tainix Hateflower","E","F","Demonspawn","P"],["Tallia","E","M","The Sacred Order","A"],["Taras the Fierce","L","V","Banner Lords","H"],["Tarshon","E","S","Demonspawn","D"],["Tatura Rimehide","L","S","Skinwalkers","D"],["Taurus","E","M","Skinwalkers","A"],["Tayrel","E","M","High Elves","D"],["Teela Goremane","L","M","Orcs","P"],["Templar","R","S","The Sacred Order","D"],["Temptress","R","M","Undead Hordes","A"],["Terrorbeast","E","S","Orcs","H"],["Teshada","E","F","Barbarians","D"],["Thea the Tomb Angel","L","F","Knight Revenant","A"],["Thenasil","E","F","High Elves","P"],["Theurgist","R","M","Knight Revenant","P"],["Thor","L","S","Barbarians","A"],["Thrall","C","M","Knight Revenant","A"],["Thrasher","U","S","Ogryn Tribes","A"],["Throatcutter","U","S","Orcs","A"],["Tigersoul","R","S","Barbarians","A"],["Tomb Lord","L","S","Knight Revenant","P"],["Toragi the Frog","E","M","Shadowkin","H"],["Tormentor","R","M","Demonspawn","A"],["Tormin the Cold","L","V","Dwarves","D"],["Torturehelm","E","F","Orcs","H"],["Totem","R","S","Orcs","P"],["Towering Titan","E","V","Ogryn Tribes","H"],["Tracker","U","F","Orcs","A"],["Treefeller","R","F","Orcs","A"],["Troglodyte","C","S","Lizardmen","D"],["Trunda Giltmallet","L","M","Dwarves","A"],["Tuhak the Wanderer","E","V","Orcs","A"],["Tunnel Steward","U","S","Dwarves","A"],["Turvold","L","V","Barbarians","A"],["Twinclaw Disciple","R","F","Orcs","A"],["Tyrant Ixlimor","L","M","Demonspawn","H"],["Ultimate Galek","E","M","Orcs","A"],["Umbral Enchantress","E","V","Demonspawn","D"],["Urost the Soulcage","L","V","Undead Hordes","H"],["Ursala the Mourner","E","V","Banner Lords","P"],["Ursine Icecrusher","E","F","Skinwalkers","D"],["Ursine Ironhide","E","F","Skinwalkers","D"],["Ursuga Warcaller","L","V","Barbarians","H"],["Uugo","E","M","Ogryn Tribes","P"],["Valerie","R","M","Banner Lords","P"],["Valkyrie","L","S","Barbarians","D"],["Valla","E","S","Barbarians","D"],["Vanguard","R","V","Banner Lords","D"],["Venomage","E","F","Lizardmen","A"],["Venus","L","V","The Sacred Order","P"],["Vergis","E","S","High Elves","D"],["Vergumkaar","L","S","Lizardmen","P"],["Veteran","R","V","Orcs","D"],["Vigilante","U","S","The Sacred Order","H"],["Vilespawn","U","S","Demonspawn","P"],["Visix the Unbowed","L","V","Dark Elves","D"],["Vizier Ovelis","L","F","Dark Elves","A"],["Vogoth","E","S","Undead Hordes","H"],["Vrask","E","S","Orcs","H"],["Vulpine","U","F","Undead Hordes","A"],["Wagonbane","R","M","Ogryn Tribes","P"],["Wanderer","R","S","Dark Elves","A"],["Wandering Priest","R","S","Barbarians","P"],["War Mother","L","M","Ogryn Tribes","A"],["Warboy","C","M","Orcs","D"],["Warcaster","E","V","Banner Lords","P"],["Warchanter","U","M","Orcs","H"],["Warchief","L","F","Skinwalkers","D"],["Warden","E","S","Dark Elves","D"],["Warlord","L","V","Orcs","P"],["Warmaiden","R","F","Barbarians","A"],["Warpriest","R","S","The Sacred Order","P"],["Whisper","E","V","Knight Revenant","A"],["Windtalker","U","M","Skinwalkers","P"],["Witness","R","M","The Sacred Order","P"],["Woad-Painted","E","S","Barbarians","H"],["Word Bearer","U","M","Banner Lords","P"],["Wretch","R","F","Undead Hordes","A"],["Wurlim Frostking","L","V","Knight Revenant","D"],["Wyvernbane","R","S","Orcs","A"],["Yaga the Insatiable","E","F","Skinwalkers","A"],["Yakarl the Scourge","L","V","Barbarians","A"],["Yannica","L","S","High Elves","A"],["Yeoman","C","M","The Sacred Order","A"],["Yoshi the Drunkard","L","F","Shadowkin","P"],["Yumeko","L","V","Shadowkin","P"],["Zargala","E","F","Orcs","A"],["Zavia","L","F","Dark Elves","A"],["Zelotah","E","S","Undead Hordes","P"],["Zephyr Sniper","U","S","Barbarians","D"]];
+const RNAME={L:"Legendary",E:"Epic",R:"Rare",U:"Uncommon",C:"Common"};
+const ANAME={M:"Magic",F:"Force",S:"Spirit",V:"Void"};
+const ROLE={A:"Attack",D:"Defense",H:"HP",P:"Support"};
+const SETS=["None","Lifesteal","Speed","Accuracy","Perception","Stun","Toxic","Cruel","Immortal","Shield","Relentless","Savage","Lethal","Frenzy","Regen","Divine Life","Pinpoint","Bolster","Protection","Stone Skin","Reflex"];
+const BLESS=["None","Cruelty","Lightning Cage","Phantom Touch","Soul Harvest","Polymorph","Ward of the Fallen","Lethal Accuracy","Brimstone","Temporal Chains"];
+const SOULS=["None","1★","2★","3★","4★","5★","6★"];
+const TAGS={
+"Arbiter":["tm","heal","rev"],"Lyssandra":["tm","decspd"],"Siphi the Lost Bride":["heal","rev","blockdeb"],
+"Duchess Lilitu":["allyprot","heal","blockdeb"],"Krisk the Insatiable":["allyprot","decatk","heal","provoke"],
+"Madam Serris":["decdef","decatk","blockbuffs"],"Stag Knight":["decdef","decatk"],"Frozen Banshee":["poison"],
+"Occult Brawler":["poison"],"Tayrel":["decdef","decatk"],"Apothecary":["heal","tm"],"Pain Keeper":["heal","tm"],
+"Maneater":["unkill","tm"],"Vizier Ovelis":["poison"],"Bad-el-Kazar":["heal","hpburn","poison"],
+"Ninja":["aoe","hpburn"],"Geomancer":["hpburn","reflect"],"Helicath":["allyprot","shield"],
+"Demytha":["unkill","blockdeb","heal"],"Scyl of the Drakes":["tm","heal","stun"],"Fahrakin the Fat":["tm","allyatk"],
+"Deacon Armstrong":["tm","decdef"],"High Khatun":["tm"],"Seeker":["tm"],"Miscreated Monster":["allyprot","heal"],
+"Uugo":["decdef","heal","blockbuffs"],"Venomage":["poison","hpburn"],"Coldheart":["hpcond","tm"],
+"Armiger":["tm","hpcond"],"Alure":["tm"],"Sun Wukong":["aoe","tm"],"Gnut":["hpcond","aoe"],
+"Mikage":["tm","allyatk"],"Lady Mikage":["tm","allyatk"],"Pythion":["rev","blockdeb","heal"],
+"Cardiel":["tm","blockdeb"],"Rector Drath":["heal","rev","blockdeb"],"Reliquary Tender":["heal","blockdeb"],
+"Doompriest":["cleanse","heal"],"Godseeker Aniri":["rev","blockdeb"],"Mithrala Whisperwood":["blockdeb","heal","tm"],
+"Tatura Rimehide":["allyprot","blockdeb"],"Ursala the Mourner":["heal","blockdeb","tm"],"Vogoth":["heal","leech"],
+"Skullcrusher":["allyprot","counter"],"Martyr":["allyprot","counter","decatk"],"Taras the Fierce":["unkill","aoe"],
+"Artak":["hpburn"],"Elva Autumnborn":["heal","tm"],"Prince Kymar":["tm","reset"],"Dracomorph":["poison","decdef"],
+"Valkyrie":["counter","allyprot"],"Lydia the Deathsiren":["decdef","hex","blockbuffs"],"Acrizia":["hpcond"],
+"Supreme Galek":["hpburn","aoe"],"Kael":["poison"],"Warmaiden":["decdef"],"Bellower":["aoe","tm"],
+"Bulwark":["reflect","hpburn"],"Brogni":["shield","hpburn"],"Urogrim":["poison","heal"],"Tomb Lord":["poison","tm"],
+"Zavia":["poison","aoe"],"Rhazin Scarhide":["decdef","decatk"],"Tyrant Ixlimor":["heal","hpburn"],
+"Gnishak Verminlord":["poison"],"Harima":["allyprot","decatk"],"Yumeko":["tm","reset"],
+"Skullcrown":["aoe","unkill"],"Aothar":["hpburn"],"Royal Guard":["aoe","hpcond"],"Anax":["hpcond"],
+"Gravechill Killer":["poison"],"Jintoro":["decdef","aoe"],"Shu-Zhen the Valorous":["tm","blockdeb"],
+"Hotatsu":["allyprot"],"Cruetraxa":["aoe"],"Longbeard":["allyatk"],"Dark Kael":["poison"],
+"Warchief":["provoke"],"Skull Lord Reketla":["decdef","tm"],"Mithrala":["blockdeb","heal"],
+"He-Man":["aoe"],"Thor":["aoe"],"Geomancer":["hpburn","reflect"],
+"Armina":["decdef"],"Fenax":["blockbuffs"],"Vrask":["heal","leech"],"Grizzled Jarl":["blockbuffs","decatk"],
+"Umbral Enchantress":["blockbuffs"],"Foli":["tm","aoe"],"Big Un":["aoe","stun"],"Tormin the Cold":["freeze","tm"],
+"Rotos the Lost Groom":["aoe"],"Trunda Giltmallet":["aoe"],"Sinesha":["heal","aoe"],"Septimus":["hpcond"],
+"Mausoleum Mage":["decdef","heal"],"Spirithost":["tm"],"Reyla the Destroyer":["aoe"],
+"Aox the Rememberer":["hpburn","heal"],"Husk":["aoe"],"Nekhret the Great":["rev","shield"],
+"Siphi":["heal","rev"],"Drexthar Bloodtwin":["hpburn","provoke"],"Ignatius":["provoke"],
+"Rearguard Sergeant":["allyprot"],"Steelskull":["poison","heal"],"Broadmaw":["freeze"],
+"Gorgorab":["tm","rev"],"Thenasil":["heal","decdef"],"Relickeeper":["aoe"],
+"Chonoru":["tm"],"Toragi the Frog":["allyprot","poison"],"Oboro":["tm"],
+"Klodd Beastfeeder":["heal"],"Fodbor the Bard":["tm"],"Sachi":["blockdeb"],
+"Yoshi the Drunkard":["tm"],"Sicia Flametongue":["hpburn"],"Countess Lix":["aoe","decdef"],
+"Genzin":["aoe"],"Samar Gemcursed":["hpburn"],"Blind Seer":["cleanse","rev"],
+"Black Knight":["allyprot"],"Brakus the Shifter":["aoe"],"Cillian the Lucky":["aoe"],
+"Altan":["decatk","allyprot"],"Abbess":["aoe"],"Angar":["tm"],"Astralith":["aoe","leech"]
+};
+const BOSSES=[
+ {id:"cb-unm",name:"Clan Boss — UNM / NM",n:5,need:["poison","hpburn","heal","tm","decatk","allyprot","leech"]},
+ {id:"hydra",name:"Hydra (generic 6)",n:6,need:["blockbuffs","provoke","hex","hpburn","cleanse","blockdeb","heal","rev","decatk","veil"]},
+ {id:"chimera",name:"Chimera",n:5,need:["blockdeb","heal","tm","decdef","aoe","rev"]},
+ {id:"fk",name:"Fire Knight",n:5,need:["tm","hpcond","heal","decdef"]},
+ {id:"ig",name:"Ice Golem",n:5,need:["aoe","heal","tm","decdef"]},
+ {id:"dragon",name:"Dragon",n:5,need:["poison","hpburn","decdef","heal"]},
+ {id:"spider",name:"Spider",n:5,need:["hpcond","aoe","tm"]},
+ {id:"minotaur",name:"Minotaur",n:5,need:["aoe","heal"]},
+ {id:"scarab",name:"Scarab King",n:5,need:["reflect","hpburn","shield","unkill"]},
+ {id:"sand",name:"Sand Devil",n:5,need:["unkill","blockdeb","tm","heal"]},
+ {id:"twins",name:"Iron Twins",n:5,need:["hpburn","blockdeb","heal","decatk"]},
+ {id:"dt",name:"Doom Tower (generic boss)",n:5,need:["blockdeb","heal","tm","decdef","rev"]}
+];
+const HEADS=[
+ {id:"decay",name:"Decay",need:["provoke","tm"]},
+ {id:"mischief",name:"Mischief",need:["blockbuffs","hex"]},
+ {id:"torment",name:"Torment",need:["veil","cleanse","blockdeb"]},
+ {id:"blight",name:"Blight",need:["hpburn"]},
+ {id:"wrath",name:"Wrath",need:["decatk","heal","allyprot"]},
+ {id:"suffering",name:"Suffering",need:["heal","rev","shield","allyprot"]}
+];
+const KEY="championLogs.v2";
+const LIST=RAW.map(r=>({n:r[0],r:r[1],a:r[2],f:r[3],k:r[4],roles:TAGS[r[0]]||[]}));
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{roster:{},teams:[]};}catch(e){return{roster:{},teams:[]}}}
+function save(s){localStorage.setItem(KEY,JSON.stringify(s))}
+let state=load();
+function rec(name){
+  if(!state.roster[name]) state.roster[name]={owned:false,stars:"6★",skills:"A1",soul:"None",bless:"None",set1:"Lifesteal",set2:"Speed"};
+  return state.roster[name];
+}
+function renderBarracks(){
+  const q=document.getElementById("search").value.toLowerCase();
+  const fr=document.getElementById("filterRarity").value;
+  const fa=document.getElementById("filterAff").value;
+  const fo=document.getElementById("filterOwn").value;
+  const ownedN=LIST.filter(c=>rec(c.n).owned).length;
+  document.getElementById("rosterStats").innerHTML=`<span>Catalog ${LIST.length}</span><span>Owned ${ownedN}</span>`;
+  const grid=document.getElementById("champGrid");
+  grid.innerHTML="";
+  const frag=document.createDocumentFragment();
+  LIST.forEach(c=>{
+    const r=rec(c.n);
+    if(q && !c.n.toLowerCase().includes(q) && !c.f.toLowerCase().includes(q)) return;
+    if(fr && c.r!==fr) return;
+    if(fa && c.a!==fa) return;
+    if(fo==="owned" && !r.owned) return;
+    if(fo==="missing" && r.owned) return;
+    const el=document.createElement("div");
+    el.className="card"+(r.owned?" owned":"");
+    el.innerHTML=`<div class="name">${c.n}</div>
+      <div class="meta"><span class="dot ${c.a}"></span><span class="r${c.r}">${RNAME[c.r]}</span> · ${ANAME[c.a]} · ${c.f} · ${ROLE[c.k]}</div>
+      <div class="fields">
+        <div><label>Stars</label><select data-f="stars">${["5★","6★"].map(s=>`<option ${r.stars===s?"selected":""}>${s}</option>`).join("")}</select></div>
+        <div><label>Skills</label><select data-f="skills">${["A1","A2 booked","Fully booked"].map(s=>`<option ${r.skills===s?"selected":""}>${s}</option>`).join("")}</select></div>
+        <div><label>Soul</label><select data-f="soul">${SOULS.map(s=>`<option ${r.soul===s?"selected":""}>${s}</option>`).join("")}</select></div>
+        <div><label>Blessing</label><select data-f="bless">${BLESS.map(s=>`<option ${r.bless===s?"selected":""}>${s}</option>`).join("")}</select></div>
+        <div><label>Set 1</label><select data-f="set1">${SETS.map(s=>`<option ${r.set1===s?"selected":""}>${s}</option>`).join("")}</select></div>
+        <div><label>Set 2</label><select data-f="set2">${SETS.map(s=>`<option ${r.set2===s?"selected":""}>${s}</option>`).join("")}</select></div>
+      </div>
+      <button class="btn own ${r.owned?"primary":""}">${r.owned?"In barracks":"I own this"}</button>`;
+    el.querySelector(".own").onclick=()=>{r.owned=!r.owned;save(state);renderBarracks()};
+    el.querySelectorAll("select").forEach(sel=>{sel.onchange=()=>{r[sel.dataset.f]=sel.value;save(state)}});
+    frag.appendChild(el);
+  });
+  grid.appendChild(frag);
+}
+function scoreChamp(c,need){
+  let s=0;
+  (c.roles||[]).forEach(role=>{if(need.includes(role)) s+=4});
+  const r=rec(c.n);
+  if(r.owned) s+=10;
+  if(c.r==="L") s+=1.4; else if(c.r==="E") s+=0.8;
+  if(r.skills==="Fully booked") s+=0.5;
+  if(r.soul && r.soul!=="None") s+=0.3;
+  return s;
+}
+function pickTeam(need,size){
+  return LIST.map(c=>({c,s:scoreChamp(c,need)}))
+    .filter(x=>rec(x.c.n).owned)
+    .sort((a,b)=>b.s-a.s)
+    .slice(0,size);
+}
+function classic(need,n){
+  return LIST.filter(c=>(c.roles||[]).some(r=>need.includes(r))).slice(0,n);
+}
+function renderBuilder(){
+  const sel=document.getElementById("bossSelect");
+  if(!sel.options.length){
+    BOSSES.forEach(b=>{const o=document.createElement("option");o.value=b.id;o.textContent=b.name;sel.appendChild(o)});
+  }
+  const boss=BOSSES.find(b=>b.id===sel.value)||BOSSES[0];
+  const owned=LIST.filter(c=>rec(c.n).owned).length;
+  const team=pickTeam(boss.need,boss.n);
+  const classics=classic(boss.need,14);
+  document.getElementById("bossOut").innerHTML=`<div class="card">
+    <div class="name">${boss.name}</div>
+    <div class="meta">Roles: ${boss.need.join(", ")} · Team size ${boss.n} · You own ${owned}</div>
+    <h3 style="margin:10px 0 6px;font-size:14px">From your barracks</h3>
+    <div class="team">${team.length?team.map(t=>`<span class="chip have">${t.c.n}</span>`).join(""):"<span class='note'>Mark owned champs in Barracks first.</span>"}</div>
+    ${team.length?`<button class="btn primary" id="saveTeam">Save this team</button>`:""}
+    <h3 style="margin:14px 0 6px;font-size:14px">Classic picks</h3>
+    <div class="team">${classics.map(c=>`<span class="chip ${rec(c.n).owned?"have":"miss"}">${c.n}</span>`).join("")}</div>
+  </div>`;
+  const btn=document.getElementById("saveTeam");
+  if(btn) btn.onclick=()=>{
+    state.teams.unshift({boss:boss.name,champs:team.map(t=>t.c.n),at:new Date().toISOString()});
+    save(state);alert("Team saved.");
+  };
+}
+function renderHeads(){
+  const box=document.getElementById("headPicks");
+  if(!box.dataset.ready){
+    box.innerHTML=HEADS.map((h,i)=>`<label><input type="checkbox" value="${h.id}" ${i<4?"checked":""}/> ${h.name}</label>`).join("");
+    box.dataset.ready="1";
+  }
+}
+function renderHydra(){
+  renderHeads();
+  const picked=[...document.querySelectorAll("#headPicks input:checked")].map(i=>i.value);
+  const heads=HEADS.filter(h=>picked.includes(h.id));
+  const need=[...new Set(heads.flatMap(h=>h.need).concat(["heal","blockdeb"]))];
+  const team=pickTeam(need,6);
+  document.getElementById("hydraOut").innerHTML=`<div class="card">
+    <div class="name">Hydra — ${heads.map(h=>h.name).join(", ")||"no heads selected"}</div>
+    <div class="meta">Weighted roles: ${need.join(", ")}</div>
+    <div class="team">${team.length?team.map(t=>`<span class="chip have">${t.c.n}</span>`).join(""):"<span class='note'>Mark owned champs first.</span>"}</div>
+    ${team.length?`<button class="btn primary" id="saveHydra">Save Hydra team</button>`:""}
+    <h3 style="margin:14px 0 6px;font-size:14px">Role coverage from your roster</h3>
+    ${heads.map(h=>{
+      const hits=LIST.filter(c=>rec(c.n).owned && c.roles.some(r=>h.need.includes(r)));
+      return `<div class="meta"><b>${h.name}</b>: ${hits.length?hits.slice(0,8).map(c=>c.n).join(", "):"no tagged owned champ"}</div>`;
+    }).join("")}
+  </div>`;
+  const b=document.getElementById("saveHydra");
+  if(b) b.onclick=()=>{
+    state.teams.unshift({boss:"Hydra: "+heads.map(h=>h.name).join("/"),champs:team.map(t=>t.c.n),at:new Date().toISOString()});
+    save(state);alert("Hydra team saved.");
+  };
+}
+function renderSaved(){
+  const box=document.getElementById("savedList");
+  if(!state.teams.length){box.innerHTML="<p class='note'>No saved teams yet.</p>";return}
+  box.innerHTML=state.teams.map((t,i)=>`<div class="card">
+    <div class="name">${t.boss}</div>
+    <div class="meta">${new Date(t.at).toLocaleString()}</div>
+    <div class="team">${t.champs.map(n=>`<span class="chip have">${n}</span>`).join("")}</div>
+    <button class="btn" data-del="${i}">Delete</button>
+  </div>`).join("");
+  box.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{state.teams.splice(+b.dataset.del,1);save(state);renderSaved()});
+}
+function exportCsv(){
+  const lines=["name,owned,stars,skills,soul,bless,set1,set2"];
+  LIST.forEach(c=>{
+    const r=rec(c.n);
+    if(!r.owned && r.stars==="6★" && r.skills==="A1") return;
+    lines.push([c.n,r.owned?1:0,r.stars,r.skills,r.soul,r.bless,r.set1,r.set2].map(v=>`"${String(v).replaceAll('"','""')}"`).join(","));
+  });
+  const blob=new Blob([lines.join("\n")],{type:"text/csv"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download="champion-logs-barracks.csv";a.click();
+}
+function importCsv(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const text=String(reader.result);
+    const rows=text.split(/\r?\n/).filter(Boolean);
+    rows.shift();
+    let n=0;
+    rows.forEach(line=>{
+      const cols=[]; let cur="",q=false;
+      for(const ch of line){
+        if(ch==='"'){q=!q;continue}
+        if(ch==="," && !q){cols.push(cur);cur="";continue}
+        cur+=ch;
+      }
+      cols.push(cur);
+      if(cols.length<2) return;
+      const name=cols[0];
+      if(!LIST.some(c=>c.n===name)) return;
+      const r=rec(name);
+      r.owned=cols[1]==="1"||cols[1].toLowerCase()==="true";
+      if(cols[2]) r.stars=cols[2];
+      if(cols[3]) r.skills=cols[3];
+      if(cols[4]) r.soul=cols[4];
+      if(cols[5]) r.bless=cols[5];
+      if(cols[6]) r.set1=cols[6];
+      if(cols[7]) r.set2=cols[7];
+      n++;
+    });
+    save(state);renderBarracks();alert("Imported "+n+" rows.");
+  };
+  reader.readAsText(file);
+}
+document.querySelectorAll("nav button").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    ["barracks","builder","hydra","saved"].forEach(id=>document.getElementById(id).hidden=id!==b.dataset.tab);
+    if(b.dataset.tab==="builder") renderBuilder();
+    if(b.dataset.tab==="hydra") renderHydra();
+    if(b.dataset.tab==="saved") renderSaved();
+  };
+});
+["search","filterRarity","filterAff","filterOwn"].forEach(id=>{
+  document.getElementById(id).addEventListener("input",renderBarracks);
+  document.getElementById(id).addEventListener("change",renderBarracks);
+});
+document.getElementById("bossSelect").addEventListener("change",renderBuilder);
+document.getElementById("genBtn").addEventListener("click",renderBuilder);
+document.getElementById("hydraBtn").addEventListener("click",renderHydra);
+document.getElementById("headPicks").addEventListener("change",renderHydra);
+document.getElementById("exportBtn").onclick=exportCsv;
+document.getElementById("importCsv").onchange=e=>{if(e.target.files[0]) importCsv(e.target.files[0])};
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+renderBarracks();
+</script>
+</body>
+</html>
